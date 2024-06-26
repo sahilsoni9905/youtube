@@ -28,9 +28,9 @@ class _UserInfoScreenState extends ConsumerState<UserInfoScreen> {
   }
 
   void storeUserData() async {
-    String name = nameController.text.trim();
-    if (name.isNotEmpty) {
-      ref.read(AuthRepositoryProvider).saveUserData(name, image!, context);
+    String bio = nameController.text.trim();
+    if (bio.isNotEmpty) {
+      ref.read(AuthRepositoryProvider).saveUserData(bio, image!, context);
     }
   }
 
@@ -66,7 +66,7 @@ class _UserInfoScreenState extends ConsumerState<UserInfoScreen> {
                   padding: const EdgeInsets.all(20),
                   child: TextField(
                     controller: nameController,
-                    decoration: InputDecoration(hintText: 'Enter Your Name'),
+                    decoration: InputDecoration(hintText: 'Enter Your Bio...'),
                   ),
                 ),
                 IconButton(onPressed: storeUserData, icon: Icon(Icons.done))

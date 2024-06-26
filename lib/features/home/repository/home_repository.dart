@@ -10,6 +10,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+final anotherUserDataAuthProvider =
+    FutureProvider.family<UserModel?, String>((ref, userUid) async {
+  return ref.watch(HomeRepositoryProvider).getAnotherUser(userUid);
+});
+
 final HomeRepositoryProvider = Provider((ref) => HomeRepository(ref: ref));
 
 class HomeRepository {
@@ -36,7 +41,6 @@ class HomeRepository {
         if (response.error != null) {
           debugPrint('Update error: ${response.error!.message}');
         } else {
-          print('reached till level 4');
           debugPrint('User data successfully updated');
           showSnackBar(context: context, content: 'Data updated successfully');
           Navigator.pushNamedAndRemoveUntil(
@@ -48,6 +52,65 @@ class HomeRepository {
     } catch (e) {
       debugPrint('Error updating user data: $e');
     }
+  }
+
+  Future<bool> isLiked(String postUid) async {
+    UserModel? user = await getCurrentUser();
+    if (user != null) {
+      final response = await supabase
+          .from('posts')
+          .select('people_who_liked')
+          .eq('uid', postUid)
+          .single();
+
+      if (response == null) {
+        print('Error fetching post: ');
+        return false;
+      }
+
+      final post = response;
+      List<dynamic> peopleWhoLiked = post['people_who_liked'] ?? [];
+
+      return peopleWhoLiked.contains(user.uid);
+    } else {
+      print('Error: No user found.');
+      return false;
+    }
+  }
+
+  Future<void> likeUpdate(String postUid, bool alreadyLiked) async {
+    UserModel? user = await getCurrentUser();
+    if (user != null) {
+      final response =
+          await supabase.from('posts').select().eq('uid', postUid).single();
+
+      final post = response;
+      List<dynamic> peopleWhoLiked = post['people_who_liked'] ?? [];
+
+      if (alreadyLiked) {
+        peopleWhoLiked.remove(user.uid);
+      } else {
+        peopleWhoLiked.add(user.uid);
+      }
+
+      final updateResponse = await supabase
+          .from('posts')
+          .update({'people_who_liked': peopleWhoLiked}).eq('uid', postUid);
+
+      if (updateResponse.error != null) {
+        print('Error updating likes: ${updateResponse.error!.message}');
+      } else {
+        print('Post likes updated successfully.');
+      }
+    } else {
+      print('Error: No user found.');
+    }
+  }
+
+  Future<int> numberOfLikes(String postUid) async {
+    final num =
+        await supabase.from('posts').select().eq('uid', postUid).single();
+    return num.length;
   }
 
   Future<void> saveUserVideo(
@@ -62,7 +125,7 @@ class HomeRepository {
         showSnackBar(context: context, content: 'Oops file was not uploaded ');
         return;
       }
-      UserModel? userDetails = await getCurrentUser(context);
+      UserModel? userDetails = await getCurrentUser();
       if (userDetails == null) {
         showSnackBar(context: context, content: 'sonething went wrong');
         return;
@@ -81,12 +144,13 @@ class HomeRepository {
 
       await supabase.from('posts').insert(postModel.toMap());
       showSnackBar(context: context, content: 'Post Uploaded Successfully');
+      Navigator.pushNamed(context, HomePage.routeName);
     } catch (e) {
       showSnackBar(context: context, content: e.toString());
     }
   }
 
-  Future<UserModel?> getCurrentUser(BuildContext context) async {
+  Future<UserModel?> getCurrentUser() async {
     try {
       final user = supabase.auth.currentUser;
 
@@ -102,10 +166,32 @@ class HomeRepository {
       }
 
       return UserModel.fromMap(response);
-
-     
     } catch (e) {
-      showSnackBar(context: context, content: e.toString());
+      //  showSnackBar(context: context, content: e.toString());
+      print('error in fetching current user');
+      return null;
+    }
+  }
+
+  Future<UserModel?> getAnotherUser(String anotherUserUid) async {
+    try {
+      final user = supabase.auth.currentUser;
+
+      if (user == null) {
+        return null;
+      }
+
+      final response =
+          await supabase.from('users').select().eq('uid', user.id).single();
+
+      if (response == null) {
+        throw Exception('Error fetching user data: ${response}');
+      }
+
+      return UserModel.fromMap(response);
+    } catch (e) {
+      //  showSnackBar(context: context, content: e.toString());
+      print('error in fetching current user');
       return null;
     }
   }

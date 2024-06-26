@@ -1,8 +1,12 @@
-import 'package:basic_youtube_clone/features/auth/screens/sign_up_page.dart';
-import 'package:basic_youtube_clone/router.dart';
+import 'package:basic_youtube_clone/bottom_bar.dart';
+import 'package:basic_youtube_clone/features/auth/repository/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'features/auth/screens/sign_up_page.dart';
+
+import 'router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,13 +19,13 @@ void main() async {
       eventsPerSecond: 1,
     ),
   );
+
   runApp(ProviderScope(child: MyApp()));
-  final supabase = Supabase.instance.client;
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       onGenerateRoute: (settings) => generateRoute(settings),
       title: 'Flutter Demo',
@@ -29,7 +33,25 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: SignUpPage(),
+      home: ref.watch(userDataAuthProvider).when(
+            data: (user) {
+              if (user == null) {
+                return SignUpPage();
+              } else {
+                return HomePage(
+                  userUid: user.uid.toString(),
+                );
+              }
+            },
+            error: (err, trace) {
+              return Center(
+                child: Text('something went wrong'),
+              );
+            },
+            loading: () => Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
     );
   }
 }

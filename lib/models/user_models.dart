@@ -8,6 +8,7 @@ class UserModel {
   final List<String> postCommented;
   final List<String> subscribedList;
   final List<String> videoUploaded;
+  final String bio;
 
   UserModel({
     required this.name,
@@ -19,6 +20,7 @@ class UserModel {
     required this.postCommented,
     required this.subscribedList,
     required this.videoUploaded,
+    this.bio = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -32,6 +34,7 @@ class UserModel {
       'post_commented': postCommented,
       'subscribed_list': subscribedList,
       'video_uploaded': videoUploaded,
+      'bio': bio,
     };
   }
 
@@ -46,6 +49,7 @@ class UserModel {
       postCommented: List<String>.from(map['post_commented'] ?? []),
       subscribedList: List<String>.from(map['subscribed_list'] ?? []),
       videoUploaded: List<String>.from(map['video_uploaded'] ?? []),
+      bio: map['bio'] ?? '',
     );
   }
 }

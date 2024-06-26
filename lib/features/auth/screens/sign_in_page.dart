@@ -1,44 +1,57 @@
-import 'package:basic_youtube_clone/bottom_bar.dart';
 import 'package:basic_youtube_clone/features/auth/repository/auth_repository.dart';
 import 'package:basic_youtube_clone/features/auth/screens/profile_setup_screen.dart';
-import 'package:basic_youtube_clone/features/auth/screens/sign_in_page.dart';
+import 'package:basic_youtube_clone/features/auth/screens/sign_up_page.dart';
+import 'package:basic_youtube_clone/models/user_models.dart';
 import 'package:basic_youtube_clone/utils/snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class SignUpPage extends ConsumerWidget {
-  final TextEditingController nameController = TextEditingController();
+class SignInPage extends ConsumerWidget {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final SupabaseClient supabase = Supabase.instance.client;
+  final SupabaseClient supabaseClient = Supabase.instance.client;
+  static const String routeName = 'sign-in-page';
 
-  Future<void> signUp(WidgetRef ref, String email, String password, String name,
-      BuildContext context) async {
-    if (name.isEmpty) {
-      showSnackBar(context: context, content: 'Name cannot be empty');
-      return;
-    }
+  void signIn(BuildContext context, WidgetRef ref) async {
+    print('Attempting sign-in...');
+    try {
+      final response = await supabaseClient.auth.signInWithPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
 
-    if (email.isEmpty) {
-      showSnackBar(context: context, content: 'Enter a valid email address');
-      return;
-    }
+      if (response.user == null) {
+        showSnackBar(context: context, content: 'User not found');
+      } else {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          UserInfoScreen.routeName,
+          (Route<dynamic> route) => false,
+        );
+        print('User signed in successfully');
+        try {
+          final userProvider = await ref.read(userDataAuthProvider.future);
+          UserModel? user = userProvider;
+          print('Provider executed, user: $user');
 
-    if (password.isEmpty || password.length < 6) {
-      showSnackBar(
-          context: context,
-          content: 'Password must be at least 6 characters long');
-      return;
+          if (user != null) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              UserInfoScreen.routeName,
+              (Route<dynamic> route) => false,
+            );
+          } else {
+            showSnackBar(context: context, content: 'Error fetching user data');
+          }
+        } catch (providerError) {
+          print('Error executing provider: $providerError');
+        }
+      }
+    } catch (error) {
+      print('Error signing in: $error');
+      showSnackBar(context: context, content: 'Error signing in');
     }
-    ref
-        .read(AuthRepositoryProvider)
-        .signUP(email: email, password: password, name: name);
-    showSnackBar(context: context, content: 'Account Successfully created');
-    Navigator.pushNamed(
-      context,
-      SignInPage.routeName,
-    );
   }
 
   @override
@@ -52,7 +65,7 @@ class SignUpPage extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                'Sign Up',
+                'Sign In',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -61,15 +74,6 @@ class SignUpPage extends ConsumerWidget {
               ),
               const SizedBox(height: 40),
               TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
                 controller: emailController,
                 decoration: const InputDecoration(
                   labelText: 'Email',
@@ -77,7 +81,7 @@ class SignUpPage extends ConsumerWidget {
                   prefixIcon: Icon(Icons.email),
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               TextField(
                 controller: passwordController,
                 decoration: const InputDecoration(
@@ -89,11 +93,10 @@ class SignUpPage extends ConsumerWidget {
               ),
               const SizedBox(height: 40),
               ElevatedButton(
-                onPressed: () async {
-                  await signUp(ref, emailController.text,
-                      passwordController.text, nameController.text, context);
+                onPressed: () {
+                  signIn(context, ref);
                 },
-                child: Text('Sign Up'),
+                child: Text('Sign In'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   padding:
@@ -105,13 +108,16 @@ class SignUpPage extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Already have an account?'),
+                  const Text('Don\'t have an account?'),
                   TextButton(
                     onPressed: () {
-                      Navigator.pushNamed(context, SignInPage.routeName);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SignUpPage()),
+                      );
                     },
                     child: const Text(
-                      'Sign In',
+                      'Sign Up',
                       style: TextStyle(
                         color: Colors.blue,
                         fontWeight: FontWeight.bold,

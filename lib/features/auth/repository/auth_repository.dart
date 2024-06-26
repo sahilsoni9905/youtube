@@ -11,6 +11,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final AuthRepositoryProvider = Provider(
   (ref) => AuthRepository(ref: ref),
 );
+final userDataAuthProvider = FutureProvider((ref) async {
+  return ref.watch(AuthRepositoryProvider).getCurrentUser();
+});
 
 class AuthRepository {
   AuthRepository({required this.ref});
@@ -57,15 +60,14 @@ class AuthRepository {
   }
 
   Future<void> saveUserData(
-      String name, File photo, BuildContext context) async {
+      String bio, File photo, BuildContext context) async {
     try {
-      print('reached here till 1');
       String profilePic = await storeFileToStorage(supabase, photo);
-      print('reached here till 2');
+
       final user = supabase.auth.currentUser;
       if (user != null && user.id != null) {
         final userData = {
-          'name': name.trim(),
+          'bio': bio.trim(),
           'profile_pic': profilePic.trim(),
         };
 
@@ -77,12 +79,38 @@ class AuthRepository {
         debugPrint('User data successfully updated');
         showSnackBar(context: context, content: 'Data updated successfully');
         Navigator.pushNamedAndRemoveUntil(
-            context, HomePage.routeName, (route) => false);
+            context, HomePage.routeName, (route) => false,
+            arguments: user.id);
       } else {
         debugPrint('User not authenticated or user ID not available');
       }
     } catch (e) {
       debugPrint('Error updating user data: $e');
+    }
+  }
+
+  Future<UserModel?> getCurrentUser() async {
+    try {
+      print('Checking current user...');
+      final user = supabase.auth.currentUser;
+      print('Current user: $user'); // Print the current user
+
+      if (user == null) {
+        print('jo user hai wo mila hi nhi'); // Print if user is null
+        return null;
+      }
+      print('i am here');
+      final response =
+          await supabase.from('users').select().eq('uid', user.id).single();
+
+      if (response == null) {
+        throw Exception('Error fetching user data: ${response}');
+      }
+      print('usermodel return ho gya ');
+      return UserModel.fromMap(response);
+    } catch (e) {
+      print('something went wrong while fetching current user data: $e');
+      return null;
     }
   }
 }

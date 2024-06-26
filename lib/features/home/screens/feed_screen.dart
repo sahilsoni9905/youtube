@@ -48,7 +48,9 @@ class FeedScreen extends ConsumerWidget {
               return Column(
                 children: [
                   VideoCard(snap: postData),
-                  // const SizedBox(height: 20),
+                  Divider(
+                    color: Colors.black,
+                  )
                 ],
               );
             },
